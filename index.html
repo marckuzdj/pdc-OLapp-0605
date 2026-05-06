@@ -1,26 +1,49 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
     <base target="_top">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VIVO: Passagem de Carga</title>
     <style>
-        /* MANTENHA TODO O SEU CSS ORIGINAL AQUI (Igual ao PDF) */
+        /* CSS IDENTIDADE VIVO (Baseado na imagem enviada) */
         body { font-family: 'Segoe UI', sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
+        .card { background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 380px; box-sizing: border-box; text-align: center; }
+        .logo-container img { max-width: 80px; margin-bottom: 10px; }
+        h2 { margin: 0 0 20px 0; color: #8A05BE; font-size: 18px; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #8A05BE; font-size: 14px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; color: #333; }
+        input:focus { outline: none; border-color: #8A05BE; box-shadow: 0 0 0 2px rgba(138, 5, 190, 0.1); }
+        button { width: 100%; padding: 14px; background-color: #8A05BE; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        button:hover { background-color: #7204a0; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .link-auth { margin-top: 20px; font-size: 13px; color: #666; }
+        .link-auth span { color: #8A05BE; font-weight: bold; cursor: pointer; }
+        #status, .msg-auth { margin-top: 15px; padding: 10px; border-radius: 6px; font-size: 13px; display: none; }
+        .error { background: #fff5f5; color: #c53030; display: block; }
+        .success { background: #f0fff4; color: #2f855a; display: block; }
+        .loading { background: #f6e8ff; color: #8A05BE; display: block; }
         .hidden { display: none !important; }
-        /* ... restante do seu CSS ... */
     </style>
 </head>
 <body>
     <div class="card">
-        <div class="header-container">
-            <h2 id="tituloCard">Passagem de Carga | OL v1</h2>
+        <div class="logo-container">
+            <img src="https://wikimedia.org" alt="Logo">
         </div>
+        <h2 id="tituloCard">Passagem de Carga | OL v2</h2>
 
         <!-- TELA 1: LOGIN -->
         <div id="telaLogin">
-            <div class="input-group"><label>E-mail:</label><input type="text" id="loginEmail" placeholder="seu@email.com"></div>
-            <div class="input-group"><label>Senha:</label><input type="password" id="loginSenha" placeholder="******"></div>
+            <div class="input-group">
+                <label>Matrícula / E-mail:</label>
+                <input type="text" id="loginEmail" placeholder="Digite seu acesso">
+            </div>
+            <div class="input-group">
+                <label>Senha:</label>
+                <input type="password" id="loginSenha" placeholder="******">
+            </div>
             <div class="input-group">
                 <label>Transportadora:</label>
                 <select id="loginTransp"><option>Carregando...</option></select>
@@ -41,7 +64,7 @@
             <div id="msgCad" class="msg-auth"></div>
         </div>
 
-        <!-- TELA 3: FORMULÁRIO (ROMANEIO) -->
+        <!-- TELA 3: FORMULÁRIO -->
         <div id="formOriginal" class="hidden">
             <div class="input-group"><label>Operador:</label><select id="operador"></select></div>
             <div class="input-group"><label>Liberação:</label><select id="liberacao"></select></div>
@@ -53,58 +76,95 @@
     </div>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyOkNObww3Q-pnQOWUZM9nJIsXJjwqZRpfbDD8ak3LJ9ORoEia_P5wjjq6dc3ufnVbx/exec"; // <--- COLOQUE SUA URL AQUI
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyOkNObww3Q-pnQOWUZM9nJIsXJjwqZRpfbDD8ak3LJ9ORoEia_P5wjjq6dc3ufnVbx/exec";
         let usuarioLogado = "";
 
-        // Inicialização: Carrega transportadoras para o Login
+        // --- MOTOR DE COMUNICAÇÃO JSONP (ESSENCIAL PARA GITHUB) ---
+        function callServer(action, params, callbackName) {
+            const script = document.createElement('script');
+            let url = `${WEB_APP_URL}?action=${action}&callback=${callbackName}`;
+            for (let key in params) { url += `&${key}=${encodeURIComponent(params[key])}`; }
+            script.src = url;
+            document.body.appendChild(script);
+            script.onload = () => script.remove();
+        }
+
         window.onload = () => {
-            fetch(`${WEB_APP_URL}?action=getTransportadoras`)
-                .then(r => r.json())
-                .then(data => preencherCombo("loginTransp", data));
+            window.cbTransp = (data) => preencherCombo("loginTransp", data);
+            callServer('getTransportadoras', {}, 'cbTransp');
         };
 
-        async function efetuarLogin() {
-            const params = {
-                email: document.getElementById('loginEmail').value,
-                senha: document.getElementById('loginSenha').value,
-                transp: document.getElementById('loginTransp').value,
-                action: 'validarLogin'
-            };
-            
-            exibirAviso('msgLogin', 'Verificando...', 'loading');
-            const res = await fetch(`${WEB_APP_URL}?` + new URLSearchParams(params)).then(r => r.json());
-            
-            if(res.authorized) {
-                usuarioLogado = params.email;
-                mudarTela('formOriginal', 'Importar Romaneio');
-                fetch(`${WEB_APP_URL}?action=buscarDadosIniciais`).then(r => r.json()).then(popularSelects);
-            } else {
-                exibirAviso('msgLogin', res.error, 'error');
+        function mudarTela(id, titulo) {
+            document.getElementById('telaLogin').classList.add('hidden');
+            document.getElementById('telaCadastro').classList.add('hidden');
+            document.getElementById('formOriginal').classList.add('hidden');
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById('tituloCard').innerText = titulo;
+            if(id === 'telaCadastro') {
+                window.cbReg = (data) => preencherCombo("cadRegional", data);
+                callServer('buscarRegionais', {}, 'cbReg');
             }
+        }
+
+        function efetuarLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const senha = document.getElementById('loginSenha').value;
+            const transp = document.getElementById('loginTransp').value;
+            if(!email || !senha) return exibirAviso('msgLogin', 'Preencha tudo!', 'error');
+
+            exibirAviso('msgLogin', 'Autenticando...', 'loading');
+            window.cbLogin = (res) => {
+                if(res.authorized) {
+                    usuarioLogado = email;
+                    mudarTela('formOriginal', 'Importar Romaneio');
+                    window.cbInit = (d) => { popularSelects(d); };
+                    callServer('buscarDadosIniciais', {}, 'cbInit');
+                } else { exibirAviso('msgLogin', res.error, 'error'); }
+            };
+            callServer('validarLogin', { email, senha, transp }, 'cbLogin');
         }
 
         function processarEnvio() {
             const file = document.getElementById('arquivo').files[0];
+            if(!file) return exibirStatus("Selecione o CSV", "error");
             const reader = new FileReader();
-            reader.onload = async (e) => {
-                const payload = {
-                    romaneio: document.getElementById('romaneio').value,
-                    fileContent: e.target.result,
-                    conferente: usuarioLogado,
-                    operador: document.getElementById('operador').value,
-                    liberacao: document.getElementById('liberacao').value
-                };
-                const res = await fetch(`${WEB_APP_URL}?action=processarUpload`, {
+            reader.onload = (e) => {
+                exibirStatus("Enviando...", "loading");
+                fetch(WEB_APP_URL + "?action=processarUpload", {
                     method: 'POST',
-                    body: JSON.stringify(payload)
-                }).then(r => r.json());
-                
-                exibirStatus(res.mensagem, res.sucesso ? "success" : "error");
+                    mode: 'no-cors', // O upload via POST funciona com no-cors no Apps Script
+                    body: JSON.stringify({
+                        romaneio: document.getElementById('romaneio').value,
+                        fileContent: e.target.result,
+                        conferente: usuarioLogado,
+                        operador: document.getElementById('operador').value,
+                        liberacao: document.getElementById('liberacao').value
+                    })
+                }).then(() => exibirStatus("Enviado! Verifique a planilha.", "success"))
+                  .catch(() => exibirStatus("Erro no envio.", "error"));
             };
             reader.readAsText(file);
         }
 
-        // Funções de UI (Mantenha as suas originais: mudarTela, exibirAviso, preencherCombo...)
+        function preencherCombo(id, lista) {
+            const select = document.getElementById(id);
+            select.innerHTML = lista.map(i => `<option value="${i}">${i}</option>`).join('');
+        }
+
+        function popularSelects(d) {
+            preencherCombo("operador", d.operadores);
+            preencherCombo("liberacao", d.transportadoras);
+        }
+
+        function exibirAviso(id, txt, cl) {
+            const el = document.getElementById(id);
+            el.innerHTML = txt; el.className = 'msg-auth ' + cl; el.style.display = 'block';
+        }
+
+        function exibirStatus(txt, cl) {
+            const el = document.getElementById('status');
+            el.innerHTML = txt; el.className = cl; el.style.display = 'block';
+        }
     </script>
 </body>
 </html>
