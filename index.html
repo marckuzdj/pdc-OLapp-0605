@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        /* MANTENHA TODO O SEU CSS ORIGINAL AQUI (Igual ao PDF) */
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
+        .hidden { display: none !important; }
+        /* ... restante do seu CSS ... */
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header-container">
+            <h2 id="tituloCard">Passagem de Carga | OL</h2>
+        </div>
+
+        <!-- TELA 1: LOGIN -->
+        <div id="telaLogin">
+            <div class="input-group"><label>E-mail:</label><input type="text" id="loginEmail" placeholder="seu@email.com"></div>
+            <div class="input-group"><label>Senha:</label><input type="password" id="loginSenha" placeholder="******"></div>
+            <div class="input-group">
+                <label>Transportadora:</label>
+                <select id="loginTransp"><option>Carregando...</option></select>
+            </div>
+            <button onclick="efetuarLogin()" id="btnLogin">Entrar</button>
+            <div class="link-auth">Não tem senha? <span onclick="mudarTela('telaCadastro', 'Cadastrar Novo Usuário')">Cadastre-se</span></div>
+            <div id="msgLogin" class="msg-auth"></div>
+        </div>
+
+        <!-- TELA 2: CADASTRO -->
+        <div id="telaCadastro" class="hidden">
+            <div class="input-group"><label>Nome Completo:</label><input type="text" id="cadNome"></div>
+            <div class="input-group"><label>E-mail:</label><input type="text" id="cadEmail"></div>
+            <div class="input-group"><label>Regional:</label><select id="cadRegional"><option>Carregando...</option></select></div>
+            <div class="input-group"><label>Senha:</label><input type="password" id="cadSenha"></div>
+            <button onclick="efetuarCadastro()" id="btnCadastrar">Salvar Cadastro</button>
+            <div class="link-auth"><span onclick="mudarTela('telaLogin', 'Passagem de Carga | OL')">Voltar ao Login</span></div>
+            <div id="msgCad" class="msg-auth"></div>
+        </div>
+
+        <!-- TELA 3: FORMULÁRIO (ROMANEIO) -->
+        <div id="formOriginal" class="hidden">
+            <div class="input-group"><label>Operador:</label><select id="operador"></select></div>
+            <div class="input-group"><label>Liberação:</label><select id="liberacao"></select></div>
+            <div class="input-group"><label>Nº Romaneio:</label><input type="text" id="romaneio"></div>
+            <div class="input-group"><label>Arquivo CSV:</label><input type="file" id="arquivo" accept=".csv"></div>
+            <button onclick="processarEnvio()" id="btnSubmit">Enviar Base</button>
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "SUA_URL_AQUI"; // <--- COLOQUE SUA URL AQUI
+        let usuarioLogado = "";
+
+        // Inicialização: Carrega transportadoras para o Login
+        window.onload = () => {
+            fetch(`${WEB_APP_URL}?action=getTransportadoras`)
+                .then(r => r.json())
+                .then(data => preencherCombo("loginTransp", data));
+        };
+
+        async function efetuarLogin() {
+            const params = {
+                email: document.getElementById('loginEmail').value,
+                senha: document.getElementById('loginSenha').value,
+                transp: document.getElementById('loginTransp').value,
+                action: 'validarLogin'
+            };
+            
+            exibirAviso('msgLogin', 'Verificando...', 'loading');
+            const res = await fetch(`${WEB_APP_URL}?` + new URLSearchParams(params)).then(r => r.json());
+            
+            if(res.authorized) {
+                usuarioLogado = params.email;
+                mudarTela('formOriginal', 'Importar Romaneio');
+                fetch(`${WEB_APP_URL}?action=buscarDadosIniciais`).then(r => r.json()).then(popularSelects);
+            } else {
+                exibirAviso('msgLogin', res.error, 'error');
+            }
+        }
+
+        function processarEnvio() {
+            const file = document.getElementById('arquivo').files[0];
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const payload = {
+                    romaneio: document.getElementById('romaneio').value,
+                    fileContent: e.target.result,
+                    conferente: usuarioLogado,
+                    operador: document.getElementById('operador').value,
+                    liberacao: document.getElementById('liberacao').value
+                };
+                const res = await fetch(`${WEB_APP_URL}?action=processarUpload`, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                }).then(r => r.json());
+                
+                exibirStatus(res.mensagem, res.sucesso ? "success" : "error");
+            };
+            reader.readAsText(file);
+        }
+
+        // Funções de UI (Mantenha as suas originais: mudarTela, exibirAviso, preencherCombo...)
+    </script>
+</body>
+</html>
