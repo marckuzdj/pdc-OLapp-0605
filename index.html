@@ -37,21 +37,33 @@
         <!-- TELA 1: LOGIN -->
         <div id="telaLogin">
             <div class="input-group">
+                <label>Operador Logístico:</label>
+                <select id="loginOL"><option>Carregando...</option></select>
+            </div>
+            
+            <div class="input-group">
                 <label>Matrícula / E-mail:</label>
                 <input type="text" id="loginEmail" placeholder="Digite seu acesso">
             </div>
-            <div class="input-group">
+            
+            <div class="input-group" style="margin-bottom: 5px;">
                 <label>Senha:</label>
                 <input type="password" id="loginSenha" placeholder="******">
             </div>
-            <div class="input-group">
-                <label>Transportadora:</label>
-                <select id="loginTransp"><option>Carregando...</option></select>
-            </div>
+           
+            <!-- NOVO: Link Esqueci minha Senha -->
+            <div style="text-align: right; margin-bottom: 15px;">
+                <span onclick="recuperarSenha()" style="color: #8A05BE; font-size: 12px; cursor: pointer; font-weight: 500;">Esqueci minha Senha</span>
+            </div> 
+            
             <button onclick="efetuarLogin()" id="btnLogin">Entrar</button>
-            <div class="link-auth">Não tem senha? <span onclick="mudarTela('telaCadastro', 'Cadastrar Novo Usuário')">Cadastre-se</span></div>
+                    
+            <div class="link-auth">
+                Não tem senha? <span onclick="mudarTela('telaCadastro', 'Cadastrar Novo Usuário')">Cadastre-se</span>
+            </div>
             <div id="msgLogin" class="msg-auth"></div>
         </div>
+
 
         <!-- TELA 2: CADASTRO -->
         <div id="telaCadastro" class="hidden">
@@ -79,6 +91,29 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyOkNObww3Q-pnQOWUZM9nJIsXJjwqZRpfbDD8ak3LJ9ORoEia_P5wjjq6dc3ufnVbx/exec";
         let usuarioLogado = "";
 
+        // --- LÓGICA PARA RECUPERAR SENHA ---
+            function recuperarSenha() {
+                const email = document.getElementById('loginEmail').value;
+                if (!email) {
+                    return exibirAviso('msgLogin', 'Digite seu e-mail/matrícula acima primeiro!', 'error');
+                }
+        
+                if (!confirm("Deseja receber as instruções de recuperação no e-mail: " + email + "?")) return;
+        
+                exibirAviso('msgLogin', 'Enviando e-mail...', 'loading');
+                
+                window.cbRecuperar = (res) => {
+                    if (res.success) {
+                        exibirAviso('msgLogin', 'E-mail de recuperação enviado!', 'success');
+                    } else {
+                        exibirAviso('msgLogin', res.error || 'Erro ao recuperar.', 'error');
+                    }
+                };
+        
+                // Chama a rota que já existe no seu .gs (action: recuperarSenha)
+                callServer('recuperarSenha', { email: email }, 'cbRecuperar');
+            }
+      
         // --- MOTOR DE COMUNICAÇÃO JSONP (ESSENCIAL PARA GITHUB) ---
         function callServer(action, params, callbackName) {
             const script = document.createElement('script');
