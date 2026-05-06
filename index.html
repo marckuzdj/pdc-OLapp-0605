@@ -109,61 +109,41 @@
 
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyOkNObww3Q-pnQOWUZM9nJIsXJjwqZRpfbDD8ak3LJ9ORoEia_P5wjjq6dc3ufnVbx/exec";
-        let usuarioLogado = "";
+    let usuarioLogado = "";
 
-        // NOVA FUNÇÃO DE COMUNICAÇÃO (Substitua a callServer antiga)
-        async function callServer(action, params) {
-            const url = new URL(WEB_APP_URL);
-            url.searchParams.append('action', action);
-            for (let key in params) { url.searchParams.append(key, params[key]); }
-        
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors', // Força o modo CORS
-                    redirect: 'follow'
-                });
-                return await response.json();
-            } catch (e) {
-                console.error("Erro na chamada:", e);
-                return { success: false, error: "Falha na conexão com o servidor." };
-            }
-        }
+    // FUNÇÃO DE COMUNICAÇÃO - MÉTODO JSONP (O mais estável para GitHub)
+    function callServer(action, params, callbackName) {
+        const script = document.createElement('script');
+        let url = `${WEB_APP_URL}?action=${action}&callback=${callbackName}&_t=${new Date().getTime()}`;
+        for (let key in params) { url += `&${key}=${encodeURIComponent(params[key])}`; }
+        script.src = url;
+        document.body.appendChild(script);
+        script.onload = () => script.remove();
+    }
 
-        window.onload = () => {
-            window.cbOperadores = (data) => {
-                const select = document.getElementById("loginOL");
-                let options = '<option value="" disabled selected>Selecione a Empresa/Localidade</option>';
-                if (data && data.length > 0) {
-                    options += data.map(item => `<option value="${item}">${item}</option>`).join('');
-                    select.innerHTML = options;
-                }
-            };
-            callServer('getOperadoresLogistica', {}, 'cbOperadores');
-        };
-
-        function mudarTela(id, titulo) {
-            // Esconde todas as telas
-            document.getElementById('telaLogin').classList.add('hidden');
-            document.getElementById('telaCadastro').classList.add('hidden');
-            document.getElementById('formOriginal').classList.add('hidden');
+    // CARREGAMENTO INICIAL
+    window.onload = () => {
+        window.cbOperadores = (data) => {
+            const loginSelect = document.getElementById("loginOL");
+            const cadSelect = document.getElementById("cadOL");
             
-            // Mostra a tela selecionada
-            document.getElementById(id).classList.remove('hidden');
-            document.getElementById('tituloCard').innerText = titulo;
-        
-            // Se for para a tela de Cadastro, sincroniza os Operadores
-            if(id === 'telaCadastro') {
-                const selectOrigem = document.getElementById("loginOL");
-                const selectDestino = document.getElementById("cadOL");
-                
-                // Copia os itens do Login para o Cadastro
-                if (selectOrigem && selectDestino) {
-                    selectDestino.innerHTML = selectOrigem.innerHTML;
-                    selectDestino.value = ""; // Garante que comece no "Selecione..."
-                }
+            let options = '<option value="" disabled selected>Selecione a Empresa/Localidade</option>';
+            if (data && data.length > 0 && !data.includes("Erro")) {
+                options += data.map(item => `<option value="${item}">${item}</option>`).join('');
+                if(loginSelect) loginSelect.innerHTML = options;
+                if(cadSelect) cadSelect.innerHTML = options; // Preenche os dois de uma vez
             }
-        }
+        };
+        callServer('getOperadoresLogistica', {}, 'cbOperadores');
+    };
+
+    function mudarTela(id, titulo) {
+        document.getElementById('telaLogin').classList.add('hidden');
+        document.getElementById('telaCadastro').classList.add('hidden');
+        document.getElementById('formOriginal').classList.add('hidden');
+        document.getElementById(id).classList.remove('hidden');
+        document.getElementById('tituloCard').innerText = titulo;
+    }
 
         
         // ... (Insira aqui as funções efetuarLogin, efetuarCadastro e processarEnvio que criamos antes)
