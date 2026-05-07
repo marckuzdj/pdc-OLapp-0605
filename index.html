@@ -264,43 +264,33 @@
         
         // ATUALIZE A FUNÇÃO DE CADASTRO
         async function efetuarLogin() {
-            const loginUser = document.getElementById('loginEmail').value.trim(); // Pode ser E-mail ou Matrícula
-            const senha = document.getElementById('loginSenha').value.trim();
-            const ol = document.getElementById('loginOL').value;
+            const loginDigitado = document.getElementById('loginEmail').value.trim();
+            const senhaDigitada = document.getElementById('loginSenha').value.trim();
+            const olSelecionado = document.getElementById('loginOL').value;
         
-            // 1. Validação de Campos Obrigatórios (Cascade)
-            if (!loginUser) return exibirAviso('msgLogin', 'Informe seu E-mail ou Matrícula.', 'error');
-            if (!senha) return exibirAviso('msgLogin', 'Informe sua Senha.', 'error');
-            if (!ol) return exibirAviso('msgLogin', 'Selecione o Operador Logístico.', 'error');
+            if (!loginDigitado || !senhaDigitada || !olSelecionado) {
+                return exibirAviso('msgLogin', 'Preencha todos os campos!', 'error');
+            }
         
             exibirAviso('msgLogin', 'Autenticando...', 'loading');
-            const btn = document.getElementById('btnLogin');
-            btn.disabled = true;
         
-            // 2. Define o Callback para receber a resposta do Google
             window.cbLogin = (res) => {
-                btn.disabled = false;
-                if (res.authorized) {
-                    usuarioLogado = loginUser.toUpperCase();
-                    // Muda para a tela do formulário de romaneio
+                if(res.authorized) {
+                    usuarioLogado = loginDigitado.toUpperCase();
                     mudarTela('formOriginal', 'Importar Romaneio');
-                    
-                    // Carrega os dados iniciais do formulário (Operadores/Liberações)
-                    window.cbInit = (d) => { popularSelects(d); };
-                    callServer('buscarDadosIniciais', {}, 'cbInit');
                 } else {
-                    exibirAviso('msgLogin', res.error || 'Acesso Negado.', 'error');
+                    exibirAviso('msgLogin', res.error, 'error');
                 }
             };
         
-            // 3. Dispara a chamada para o servidor
-            // Passamos o loginUser (que pode ser email ou RE) e o OL selecionado
+            // --- CORREÇÃO AQUI: Os nomes devem ser email, senha e transp ---
             callServer('validarLogin', { 
-                login: loginUser, 
-                senha: senha, 
-                ol: ol 
+                email: loginDigitado, 
+                senha: senhaDigitada, 
+                transp: olSelecionado 
             }, 'cbLogin');
         }
+
 
 
 
