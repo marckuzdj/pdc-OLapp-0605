@@ -272,7 +272,8 @@
             // CHAMADA USANDO O NOVO MODELO FETCH
             const res = await callServer('salvarNovoUsuario', { nome, email, matricula, ol, senha });
            // 4. Define quem recebe a resposta
-            window.cbCadastro = (res) => {
+            // --- DENTRO DA FUNÇÃO efetuarCadastro ---
+            window.cbCadastro = (res) => { // Definimos o nome aqui
                 document.getElementById('btnCadastrar').disabled = false;
                 if (res.success) {
                     exibirAviso('msgCad', 'Cadastro realizado com sucesso!', 'success');
@@ -280,9 +281,10 @@
                     exibirAviso('msgCad', res.error || 'Erro ao cadastrar.', 'error');
                 }
             };
-
-             // 5. ÚLTIMA LINHA: Dispara para o servidor
+            
+            // AJUSTE ESTA LINHA: Adicione 'cbCadastro' no final
             callServer('salvarNovoUsuario', { nome, email, matricula, ol, senha }, 'cbCadastro');
+
             } // <-- Fim da função
 
 
