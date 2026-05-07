@@ -274,8 +274,10 @@ async function efetuarCadastro() {
 
     // 3. Define quem recebe a resposta (JSONP)
     window.cbCadastro = (res) => {
-        btn.disabled = false;
+      //  btn.disabled = false;
         if (res.success) {
+            console.log("Resposta recebida:", res);
+            document.getElementById('btnCadastrar').disabled = false;
             exibirAviso('msgCad', 'Cadastro realizado com sucesso!', 'success');
             // Limpa campos apenas no sucesso
             document.getElementById('cadNome').value = '';
