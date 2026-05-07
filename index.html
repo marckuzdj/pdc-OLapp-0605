@@ -251,41 +251,47 @@
         
         
         // ATUALIZE A FUNÇÃO DE CADASTRO
-        async function efetuarCadastro() {
-            const nome = document.getElementById('cadNome').value.trim();
-            const matricula = document.getElementById('cadMatricula').value.trim();
-            const email = document.getElementById('cadEmail').value.trim();
-            const ol = document.getElementById('cadOL').value; 
-            const senha = document.getElementById('cadSenha').value.trim();
-            const senhaRepete = document.getElementById('cadSenhaRepete').value.trim();
-        
-            if (!nome || !matricula || !email || !ol || !senha) {
-                return exibirAviso('msgCad', 'Preencha todos os campos!', 'error');
-            }
-            if (senha !== senhaRepete) {
-                return exibirAviso('msgCad', 'As senhas não coincidem!', 'error');
-            }
-        
-            exibirAviso('msgCad', 'Registrando acesso...', 'loading');
-            document.getElementById('btnCadastrar').disabled = true;
-        
-            // CHAMADA USANDO O NOVO MODELO FETCH
-            const res = await callServer('salvarNovoUsuario', { nome, email, matricula, ol, senha });
-           // 4. Define quem recebe a resposta
-            // --- DENTRO DA FUNÇÃO efetuarCadastro ---
-            window.cbCadastro = (res) => { // Definimos o nome aqui
-                document.getElementById('btnCadastrar').disabled = false;
-                if (res.success) {
-                    exibirAviso('msgCad', 'Cadastro realizado com sucesso!', 'success');
-                } else {
-                    exibirAviso('msgCad', res.error || 'Erro ao cadastrar.', 'error');
-                }
-            };
-            
-            // AJUSTE ESTA LINHA: Adicione 'cbCadastro' no final
-            callServer('salvarNovoUsuario', { nome, email, matricula, ol, senha }, 'cbCadastro');
+async function efetuarCadastro() {
+    const nome = document.getElementById('cadNome').value.trim();
+    const matricula = document.getElementById('cadMatricula').value.trim();
+    const email = document.getElementById('cadEmail').value.trim();
+    const ol = document.getElementById('cadOL').value; 
+    const senha = document.getElementById('cadSenha').value.trim();
+    const senhaRepete = document.getElementById('cadSenhaRepete').value.trim();
 
-            } // <-- Fim da função
+    // 1. Validações (Cascade)
+    if (!nome) return exibirAviso('msgCad', 'Informe seu Nome.', 'error');
+    if (!matricula) return exibirAviso('msgCad', 'Informe sua Matrícula.', 'error');
+    if (!email) return exibirAviso('msgCad', 'Informe seu E-mail.', 'error');
+    if (!ol) return exibirAviso('msgCad', 'Selecione o Operador.', 'error');
+    if (!senha) return exibirAviso('msgCad', 'Crie uma senha.', 'error');
+    if (senha !== senhaRepete) return exibirAviso('msgCad', 'As senhas não coincidem!', 'error');
+
+    // 2. Interface
+    exibirAviso('msgCad', 'Registrando acesso...', 'loading');
+    const btn = document.getElementById('btnCadastrar');
+    btn.disabled = true;
+
+    // 3. Define quem recebe a resposta (JSONP)
+    window.cbCadastro = (res) => {
+        btn.disabled = false;
+        if (res.success) {
+            exibirAviso('msgCad', 'Cadastro realizado com sucesso!', 'success');
+            // Limpa campos apenas no sucesso
+            document.getElementById('cadNome').value = '';
+            document.getElementById('cadMatricula').value = '';
+            document.getElementById('cadEmail').value = '';
+            document.getElementById('cadSenha').value = '';
+            document.getElementById('cadSenhaRepete').value = '';
+        } else {
+            exibirAviso('msgCad', res.error || 'Erro ao cadastrar.', 'error');
+        }
+    };
+
+    // 4. DISPARA PARA O SERVIDOR (Apenas uma vez)
+    // Usamos callServer porque o GitHub Pages exige JSONP para não dar CORB
+    callServer('salvarNovoUsuario', { nome, email, matricula, ol, senha }, 'cbCadastro');
+}
 
 
     </script>
